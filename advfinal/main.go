@@ -21,14 +21,12 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Static files (new ServeMux rules: make it method-specific)
 	mux.Handle("GET /static/",
 		http.StripPrefix("/static/",
 			http.FileServer(http.Dir("web/static")),
 		),
 	)
 
-	// All routes (API + frontend)
 	RegisterRoutes(mux, mongoDB)
 
 	addr := ":8080"

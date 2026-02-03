@@ -1,18 +1,30 @@
-{{define "catalog_body"}}
-<h1>Book Catalog</h1>
+{{define "content"}}
+<h1 class="h1">Catalog</h1>
 
 <div class="grid">
   {{range .Books}}
     <div class="card">
-      <h3>{{.Title}}</h3>
-      <p>Author: {{.Author}}</p>
-      <p>Genre: {{.Genre}}</p>
-      <p class="price">$ {{.Price}}</p>
-      <p>{{.Description}}</p>
+      <div class="card-title">{{.Title}}</div>
+      <div class="muted">{{.Author}} • {{.Genre}}</div>
+      <div class="price">${{printf "%.2f" .Price}}</div>
+      <p class="desc">{{.Description}}</p>
+
+      {{if $.IsAuth}}
+        <form method="post" action="/cart/add/{{.ID}}">
+          <button class="btn btn-primary" type="submit">Add to Cart</button>
+        </form>
+
+        <form method="post" action="/wishlists/add/{{.ID}}" style="margin-top:8px;">
+          <button class="btn btn-ghost" type="submit">Add to Wishlist</button>
+        </form>
+      {{else}}
+        <div class="muted" style="margin-top:10px;">Login to add items.</div>
+      {{end}}
     </div>
   {{else}}
-    <p>No books available yet.</p>
+    <p class="muted">No books yet.</p>
   {{end}}
 </div>
 {{end}}
+
 {{template "base" .}}

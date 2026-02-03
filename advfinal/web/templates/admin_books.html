@@ -1,0 +1,24 @@
+{{define "admin_books_body"}}
+<h1>Admin: Manage Books</h1>
+
+<form method="post" action="/books">
+  <input name="title" placeholder="Title">
+  <input name="author" placeholder="Author">
+  <input name="genre" placeholder="Genre">
+  <input name="price" placeholder="Price">
+  <button type="submit">Add book</button>
+</form>
+
+<hr>
+
+<h2>Existing books</h2>
+{{range .Books}}
+  <div class="card">
+    <strong>{{.Title}}</strong>
+    <form method="post" action="/books/{{.ID}}?_method=DELETE">
+      <button>Delete</button>
+    </form>
+  </div>
+{{end}}
+{{end}}
+{{template "base" .}}

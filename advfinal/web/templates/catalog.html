@@ -1,0 +1,18 @@
+{{define "catalog_body"}}
+<h1>Book Catalog</h1>
+
+<div class="grid">
+  {{range .Books}}
+    <div class="card">
+      <h3>{{.Title}}</h3>
+      <p>Author: {{.Author}}</p>
+      <p>Genre: {{.Genre}}</p>
+      <p class="price">$ {{.Price}}</p>
+      <p>{{.Description}}</p>
+    </div>
+  {{else}}
+    <p>No books available yet.</p>
+  {{end}}
+</div>
+{{end}}
+{{template "base" .}}

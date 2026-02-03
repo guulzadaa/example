@@ -1,1 +1,59 @@
+{{define "content"}}
+<h1 class="h1">Your Cart</h1>
+
+{{if .Rows}}
+  <div class="table">
+    <div class="table-head">
+      <div>Book</div>
+      <div>Qty</div>
+      <div>Line</div>
+      <div></div>
+    </div>
+
+    {{range .Rows}}
+      <div class="table-row">
+        <div>
+          {{if .HasBook}}
+            <div class="card-title">{{.Book.Title}}</div>
+            <div class="muted">{{.Book.Author}}</div>
+          {{else}}
+            <div class="muted">Unknown book (id={{.Item.BookID}})</div>
+          {{end}}
+        </div>
+
+        <div>
+          <form class="inline" method="post" action="/cart/item/{{.Item.ID}}/update">
+            <input class="qty" name="qty" type="number" min="1" value="{{.Item.Qty}}">
+            <button class="btn btn-ghost" type="submit">Update</button>
+          </form>
+        </div>
+
+        <div class="price">${{printf "%.2f" .Line}}</div>
+
+        <div>
+          <form method="post" action="/cart/item/{{.Item.ID}}/delete">
+            <button class="btn btn-danger" type="submit">Remove</button>
+          </form>
+        </div>
+      </div>
+    {{end}}
+  </div>
+
+  <div class="summary">
+    <div class="muted">Total</div>
+    <div class="summary-total">${{printf "%.2f" .Total}}</div>
+
+    <form method="post" action="/orders/create" style="margin-top:10px;">
+      <button class="btn btn-primary" type="submit">Create Order</button>
+    </form>
+  </div>
+{{else}}
+  <div class="empty">
+    <p class="muted">Your cart is empty.</p>
+    <a class="btn btn-primary" href="/catalog">Go to catalog</a>
+  </div>
+{{end}}
+{{end}}
+
+{{template "base" .}}
 

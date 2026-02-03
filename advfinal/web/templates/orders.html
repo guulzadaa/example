@@ -1,1 +1,22 @@
+{{define "content"}}
+<h1 class="h1">Orders</h1>
+
+{{if .Orders}}
+  <div class="grid">
+    {{range .Orders}}
+      <div class="card">
+        <div class="card-title">Order #{{.ID}}</div>
+        <div class="muted">Cart ID: {{.CartID}}</div>
+        <div class="price">Total: ${{printf "%.2f" .Total}}</div>
+
+        <a class="btn btn-ghost" href="/orders/{{.ID}}" style="margin-top:10px;">View details</a>
+      </div>
+    {{end}}
+  </div>
+{{else}}
+  <p class="muted">No orders yet.</p>
+{{end}}
+{{end}}
+
+{{template "base" .}}
 

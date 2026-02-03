@@ -1,1 +1,22 @@
 
+{{define "content"}}
+<section class="hero">
+  <div class="hero-card">
+    <h1 class="h1">Welcome to Online Bookstore</h1>
+    <p class="muted">
+      Browse books, add to cart, create orders, and use wishlists for gifts.
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/catalog">Explore Catalog</a>
+      {{if .IsAuth}}
+        <a class="btn btn-ghost" href="/cart">Go to Cart</a>
+      {{else}}
+        <a class="btn btn-ghost" href="/login">Login</a>
+      {{end}}
+    </div>
+  </div>
+</section>
+{{end}}
+
+{{template "base" .}}

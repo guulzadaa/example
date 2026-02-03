@@ -2,20 +2,56 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <link rel="stylesheet" href="/static/style.css">
   <title>{{.Title}}</title>
-  <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <nav class="nav">
-    <a href="/">Catalog</a>
-    <a href="/login">Login</a>
-    <a href="/register">Register</a>
-  </nav>
+
+  <!-- TOP BAR like screenshot -->
+  <div class="topbar">
+    <div class="topbar-inner">{{.Greeting}}</div>
+  </div>
+
+  <!-- NAVBAR -->
+  <header class="navbar">
+    <div class="nav-inner">
+      <a class="logo" href="/">
+        <span class="logo-emoji">📚</span>
+        <span class="logo-text">Online Bookstore</span>
+      </a>
+
+      <nav class="navlinks">
+        <a class="{{if eq .Active "home"}}active{{end}}" href="/">Home</a>
+        <a class="{{if eq .Active "catalog"}}active{{end}}" href="/catalog">Catalog</a>
+
+        {{if .IsAuth}}
+          <a class="{{if eq .Active "cart"}}active{{end}}" href="/cart">Cart</a>
+          <a class="{{if eq .Active "orders"}}active{{end}}" href="/orders">Orders</a>
+          <a class="{{if eq .Active "wishlists"}}active{{end}}" href="/wishlists">Wishlists</a>
+        {{end}}
+
+        <a class="{{if eq .Active "about"}}active{{end}}" href="/about">About</a>
+
+        <span class="divider"></span>
+
+        {{if .IsAuth}}
+          <form class="inline" method="post" action="/logout">
+            <button class="btn btn-ghost" type="submit">Logout</button>
+          </form>
+        {{else}}
+          <a class="{{if eq .Active "login"}}active{{end}}" href="/login">Login</a>
+          <a class="{{if eq .Active "register"}}active{{end}}" href="/register">Register</a>
+        {{end}}
+      </nav>
+    </div>
+  </header>
 
   <main class="container">
-    {{block "content" .}}{{end}}
+    {{template "content" .}}
   </main>
+
 </body>
 </html>
 {{end}}

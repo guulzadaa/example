@@ -20,43 +20,50 @@ func RegisterRoutes(mux *http.ServeMux, mongoDB *mongo.Database) {
 		log.Fatal("JWT_SECRET is not set")
 	}
 
-	// Repositories
+	// ---------------- Repositories ----------------
 	bookRepo := repository.NewBookRepo(mongoDB)
 	userRepo := repository.NewUserRepo(mongoDB)
-	cartRepo := repository.NewCartRepo()
+	cartRepo := repository.NewCartRepo() // in-memory
 	wishlistRepo := repository.NewWishlistRepo(mongoDB)
 	orderRepo := repository.NewOrderRepo(mongoDB)
 
-	// Background workers
+	// ---------------- Workers ----------------
 	logic.StartOrderWorkerPool(2, cartRepo, wishlistRepo)
 
-	// Services
+	// ---------------- Services ----------------
 	bookService := logic.NewBookService(bookRepo)
+	authService := logic.NewAuthService(userRepo, secret)
 	cartCRUDService := logic.NewCartCRUDService(cartRepo, bookRepo)
-
 	orderSvc := logic.NewOrderService(orderRepo, bookRepo, cartRepo)
 	orderCRUD := logic.NewOrderCRUDService(orderRepo)
-
 	wishlistService := logic.NewWishlistService(wishlistRepo, bookRepo, orderRepo)
-	authService := logic.NewAuthService(userRepo, secret)
 
-	// Handlers
+	// ---------------- API Handlers ----------------
 	bookHandler := handlers.NewBookHandler(bookService)
 	cartHandler := handlers.NewCartHandler(cartCRUDService)
-
 	orderHandler := handlers.NewOrderHandler(orderSvc)
 	orderCRUDHandler := handlers.NewOrderCRUDHandler(orderCRUD)
-
 	wishlistHandler := handlers.NewWishlistHandler(wishlistService)
 	authHandler := handlers.NewAuthHandler(authService)
 
-	frontend, err := handlers.NewFrontendHandler(bookService, authService)
+	// ---------------- Frontend ----------------
+	frontend, err := handlers.NewFrontendHandler(
+		bookService,
+		authService,
+		cartCRUDService,
+		orderSvc,
+		orderCRUD,
+		wishlistService,
+		secret,
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// ---------------- FRONTEND ----------------
-	mux.HandleFunc("GET /", frontend.Catalog)
+	// ================= FRONTEND PAGES =================
+	mux.HandleFunc("GET /", frontend.Home)
+	mux.HandleFunc("GET /catalog", frontend.Catalog)
+	mux.HandleFunc("GET /about", frontend.About)
 
 	mux.HandleFunc("GET /login", frontend.Login)
 	mux.HandleFunc("POST /login", frontend.LoginPost)
@@ -64,25 +71,40 @@ func RegisterRoutes(mux *http.ServeMux, mongoDB *mongo.Database) {
 	mux.HandleFunc("GET /register", frontend.Register)
 	mux.HandleFunc("POST /register", frontend.RegisterPost)
 
-	mux.HandleFunc("GET /admin/books", frontend.AdminBooks)
+	mux.HandleFunc("POST /logout", frontend.Logout)
 
-	// ---------------- HEALTH ----------------
+	// Cart
+	mux.HandleFunc("GET /cart", frontend.CartPage)
+	mux.HandleFunc("POST /cart/add/{bookId}", frontend.CartAdd)
+	mux.HandleFunc("POST /cart/item/{itemId}/update", frontend.CartUpdateQty)
+	mux.HandleFunc("POST /cart/item/{itemId}/delete", frontend.CartDeleteItem)
+
+	// Orders
+	mux.HandleFunc("GET /orders", frontend.OrdersPage)
+	mux.HandleFunc("GET /orders/{id}", frontend.OrderDetailsPage)
+	mux.HandleFunc("POST /orders/create", frontend.CreateOrderFromCart)
+
+	// Wishlists
+	mux.HandleFunc("GET /wishlists", frontend.WishlistsPage)
+	mux.HandleFunc("POST /wishlists/add/{bookId}", frontend.WishlistAdd)
+	mux.HandleFunc("POST /wishlists/gift/{wishlistId}", frontend.WishlistGift)
+
+	// ================= HEALTH =================
 	mux.HandleFunc("GET /health", handlers.Health)
 
-	// ---------------- AUTH API ----------------
+	// ================= AUTH API =================
 	mux.HandleFunc("POST /auth/register", authHandler.Register)
 	mux.HandleFunc("POST /auth/login", authHandler.Login)
 
-	// ---------------- BOOKS API ----------------
+	// ================= BOOKS API =================
 	mux.HandleFunc("GET /books", bookHandler.Books)
 	mux.HandleFunc("POST /books", middleware.AdminOnly(secret, bookHandler.Books))
 
-	// /books/{id}
-	mux.HandleFunc("GET /books/", bookHandler.BookByID)
-	mux.HandleFunc("PUT /books/", middleware.AdminOnly(secret, bookHandler.BookByID))
-	mux.HandleFunc("DELETE /books/", middleware.AdminOnly(secret, bookHandler.BookByID))
+	mux.HandleFunc("GET /books/{id}", bookHandler.BookByID)
+	mux.HandleFunc("PUT /books/{id}", middleware.AdminOnly(secret, bookHandler.BookByID))
+	mux.HandleFunc("DELETE /books/{id}", middleware.AdminOnly(secret, bookHandler.BookByID))
 
-	// ---------------- CARTS API ----------------
+	// ================= CARTS API =================
 	mux.HandleFunc("GET /carts", middleware.AuthOnly(secret, cartHandler.Carts))
 	mux.HandleFunc("POST /carts", middleware.AuthOnly(secret, cartHandler.Carts))
 
@@ -103,19 +125,19 @@ func RegisterRoutes(mux *http.ServeMux, mongoDB *mongo.Database) {
 	mux.HandleFunc("PUT /carts/", cartsPrefixHandler)
 	mux.HandleFunc("DELETE /carts/", cartsPrefixHandler)
 
-	// ---------------- ORDERS API ----------------
-	mux.HandleFunc("POST /orders", middleware.AuthOnly(secret, orderHandler.Orders))
-	mux.HandleFunc("GET /orders", middleware.AuthOnly(secret, orderCRUDHandler.Orders))
+	// ================= ORDERS API =================
+	mux.HandleFunc("POST /orders_api", middleware.AuthOnly(secret, orderHandler.Orders))
+	mux.HandleFunc("GET /orders_api", middleware.AuthOnly(secret, orderCRUDHandler.Orders))
 
 	ordersByID := middleware.AuthOnly(secret, orderCRUDHandler.OrderByID)
-	mux.HandleFunc("GET /orders/", ordersByID)
-	mux.HandleFunc("POST /orders/", ordersByID)
-	mux.HandleFunc("PUT /orders/", ordersByID)
-	mux.HandleFunc("DELETE /orders/", ordersByID)
+	mux.HandleFunc("GET /orders_api/", ordersByID)
+	mux.HandleFunc("POST /orders_api/", ordersByID)
+	mux.HandleFunc("PUT /orders_api/", ordersByID)
+	mux.HandleFunc("DELETE /orders_api/", ordersByID)
 
-	// ---------------- WISHLISTS API ----------------
-	mux.HandleFunc("GET /wishlists", middleware.AuthOnly(secret, wishlistHandler.Wishlists))
-	mux.HandleFunc("POST /wishlists", middleware.AuthOnly(secret, wishlistHandler.Wishlists))
+	// ================= WISHLISTS API =================
+	mux.HandleFunc("GET /wishlists_api", middleware.AuthOnly(secret, wishlistHandler.Wishlists))
+	mux.HandleFunc("POST /wishlists_api", middleware.AuthOnly(secret, wishlistHandler.Wishlists))
 
 	wishlistsPrefixHandler := middleware.AuthOnly(secret, func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/items") {
@@ -129,18 +151,8 @@ func RegisterRoutes(mux *http.ServeMux, mongoDB *mongo.Database) {
 		wishlistHandler.WishlistByID(w, r)
 	})
 
-	mux.HandleFunc("GET /wishlists/", wishlistsPrefixHandler)
-	mux.HandleFunc("POST /wishlists/", wishlistsPrefixHandler)
-	mux.HandleFunc("PUT /wishlists/", wishlistsPrefixHandler)
-	mux.HandleFunc("DELETE /wishlists/", wishlistsPrefixHandler)
-
-	// ---------------- ADMIN PING ----------------
-	mux.HandleFunc("GET /admin/ping", middleware.AdminOnly(secret, func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"admin ok"}`))
-	}))
-
-	// Optional old demo handler
-	mux.HandleFunc("POST /cart/add", handlers.AddToCartHandler)
+	mux.HandleFunc("GET /wishlists_api/", wishlistsPrefixHandler)
+	mux.HandleFunc("POST /wishlists_api/", wishlistsPrefixHandler)
+	mux.HandleFunc("PUT /wishlists_api/", wishlistsPrefixHandler)
+	mux.HandleFunc("DELETE /wishlists_api/", wishlistsPrefixHandler)
 }
